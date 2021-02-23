@@ -1,0 +1,174 @@
+
+mainloopSnd = LAMBDA(pp,dp,cc,err,in,inp,out,stack, if(err >= 8, out,
+  IF(INDIRECT(OFFSET(INDIRECT(OFFSET(INDIRECT(pp), 0, 2 + dp * 2 + cc)), dy(dp), dx(dp))) = -1, error,
+  IF(OR(INDIRECT(pp) = 6, INDIRECT(OFFSET(INDIRECT(OFFSET(INDIRECT(pp), 0, 2 + dp * 2 + cc)), dy(dp), dx(dp))) = 6), nop,
+  switch(10 * hdiff(INDIRECT(pp), INDIRECT(OFFSET(INDIRECT(OFFSET(INDIRECT(pp), 0, 2 + dp * 2 + cc)), dy(dp), dx(dp)))) + ldiff(OFFSET(INDIRECT(pp), 0, 1), OFFSET(INDIRECT(OFFSET(INDIRECT(OFFSET(INDIRECT(pp), 0, 2 + dp * 2 + cc)), dy(dp), dx(dp))), 0, 1)),
+    1, push,
+    2, pop,
+    10, add,
+    11, subtract,
+    12, multiply,
+    20, divide,
+    21, modulo,
+    22, notpiet,
+    30, greater,
+    31, pointer,
+    32, switchpiet,
+    40, duplicate,
+    41, roll,
+    42, inn,
+    50, inc,
+    51, outn,
+    52, outc
+  )))(pp,OFFSET(INDIRECT(OFFSET(INDIRECT(pp), 0, 2 + dp * 2 + cc)), dy(dp), dx(dp)),dp,cc,err,in,inp,out,stack)
+))
+
+
+
+mainloop = LAMBDA(pp,dp,cc,err,in,inp,out,stack, if(err >= 8, out,
+  LET(
+    ch, INDIRECT(pp), cl, OFFSET(INDIRECT(pp), 0, 1),
+    nh, INDIRECT(OFFSET(INDIRECT(OFFSET(INDIRECT(pp), 0, 2 + dp * 2 + cc)), dy(dp), dx(dp))), nl, OFFSET(INDIRECT(OFFSET(INDIRECT(OFFSET(INDIRECT(pp), 0, 2 + dp * 2 + cc)), dy(dp), dx(dp))), 0, 1),
+    IF(nh = -1, error,
+    IF(OR(ch = 6, nh = 6), nop,
+    switch(10 * hdiff(ch, nh) + ldiff(cl, nl),
+      1, push,
+      2, pop,
+      10, add,
+      11, subtract,
+      12, multiply,
+      20, divide,
+      21, modulo,
+      22, notpiet,
+      30, greater,
+      31, pointer,
+      32, switchpiet,
+      40, duplicate,
+      41, roll,
+      42, inn,
+      50, inc,
+      51, outn,
+      52, outc
+    )))(pp,OFFSET(INDIRECT(OFFSET(INDIRECT(pp), 0, 2 + dp * 2 + cc)), dy(dp), dx(dp)),dp,cc,err,in,inp,out,stack)
+  )
+))
+
+error = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, mainloop(pp, MOD(dp + MOD(err, 2), 4), MOD(cc + MOD(err+1, 2), 2), err + 1, in, inp, out, stack))
+
+nop = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, mainloop(npp, dp, cc, 0, in, inp, out, stack))
+
+push = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, mainloop(npp, dp, cc, 0, in, inp, out, cons(OFFSET(INDIRECT(pp), 0, 10),stack)))
+pop = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, mainloop(npp, dp, cc, 0, in, inp, out, IF(car(stack) = "!!!error!!!", stack, cdr(stack))))
+
+
+add = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, 
+  IF(OR(car(stack) = "!!!error!!!", car(cdr(stack)) = "!!!error!!!"),
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, cc, 0, in, inp, out, cons(car(stack) + car(cdr(stack)), cdr(cdr(stack))))
+  )
+)
+subtract = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(OR(car(stack) = "!!!error!!!", car(cdr(stack)) = "!!!error!!!"),
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, cc, 0, in, inp, out, cons(car(cdr(stack)) - car(stack), cdr(cdr(stack)))))
+)
+multiply = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(OR(car(stack) = "!!!error!!!", car(cdr(stack)) = "!!!error!!!"),
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, cc, 0, in, inp, out, cons(car(stack) * car(cdr(stack)), cdr(cdr(stack)))))
+)
+divide = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(OR(car(stack) = "!!!error!!!", car(cdr(stack)) = "!!!error!!!"),
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, cc, 0, in, inp, out, cons(QUOTIENT(car(cdr(stack)), car(stack)), cdr(cdr(stack)),)))
+)
+modulo = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(OR(car(stack) = "!!!error!!!", car(cdr(stack)) = "!!!error!!!"),
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, cc, 0, in, inp, out, cons(MOD(car(cdr(stack)), car(stack)), cdr(cdr(stack)))))
+)
+
+
+notpiet = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, 
+  IF(car(stack) = "!!!error!!!",
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, cc, 0, in, inp, out, cons(IF(car(stack) = 0, 1, 0), cdr(stack)))
+  )
+)
+greater = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(OR(car(stack) = "!!!error!!!", car(cdr(stack)) = "!!!error!!!"),
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, cc, 0, in, inp, out, cons(IF(car(cdr(stack)) > car(stack), 1, 0), cdr(cdr(stack))))
+  )
+)
+
+pointer = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(car(stack) = "!!!error!!!",
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, MOD(dp + car(stack), 4), cc, 0, in, inp, out, cdr(stack))
+  )
+)
+switchpiet = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(car(stack) = "!!!error!!!",
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, MOD(cc + car(stack), 2), 0, in, inp, out, cdr(stack))
+  )
+)
+
+duplicate = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, mainloop(npp, dp, cc, 0, in, inp, out, cons(car(stack), stack)))
+
+
+
+inn = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(ISNUMBER(OFFSET(in, 0, inp)),
+    mainloop(npp, dp, cc, 0, in, inp+1, out, cons(OFFSET(in, 0, inp), stack)),
+    mainloop(npp, dp, cc, 0, in, inp, out, stack)
+  )
+)
+inc = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(ISBLANK(OFFSET(in, 0, inp)),
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, cc, 0, in, inp+1, out, cons(UNICODE(OFFSET(in, 0, inp)), stack))
+  )
+)
+
+outn = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(car(stack) = "!!!error!!!",
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, cc, 0, in, inp, CONCAT(out, car(stack)), cdr(stack))
+  )
+)
+outc = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack,
+  IF(car(stack) = "!!!error!!!",
+    mainloop(npp, dp, cc, 0, in, inp, out, stack),
+    mainloop(npp, dp, cc, 0, in, inp, CONCAT(out, UNICHAR(car(stack))), cdr(stack))
+  )
+)
+
+
+hdiff = LAMBDA(from, to, if(to >= from, to - from, 6 - (from - to)))
+ldiff = LAMBDA(from, to, if(from >= to, from - to, 3 - (to - from)))
+
+dx = LAMBDA(dp, (1 - MOD(dp, 2)) * (1 - dp))
+dy = LAMBDA(dp, MOD(dp, 2) * (2 - dp))
+
+
+cons = LAMBDA(x,y, LAMBDA(m, m(x, y)))
+car = LAMBDA(z, z(LAMBDA(p,q, p)))
+cdr = LAMBDA(z, z(LAMBDA(p,q, q)))
+
+
+---------------------------------------------------------------------------------------
+
+
+debug = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, "!!!debug!!!")
+
+debug = LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, out)
+
+LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, CONCAT(out, UNICHAR(car(stack))))
+
+LAMBDA(pp,npp,dp,cc,err,in,inp,out,stack, 
+  MOD(dp + car(stack), 4)
+)
+
+
